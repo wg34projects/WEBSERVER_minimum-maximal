@@ -28,31 +28,119 @@
 #include <stdlib.h>
 #include <regex.h>
 
-#define TEXTLEN 100000		// max length send/receive
+#define TEXTLEN 5000		// max length send/receive
+#define TEXTLENSEND 1900000
 
 #define LINELEN 500			// max line length
 
 #define MAXURL 100			// max url length
-#define URLNORMAL 14		// GET /nowMAXURLlength HTTP/1.1 are MAXURL + 14
 #define URLENDING 9			// HTTP/1.1 plus one space = 9
+#define IP4LENGTH 15
 
-#define DEBUGPIPE 1			// info pipe
+#define DEBUGPIPE 0			// info pipe log to file
 #define DEBUGINRAW 0		// raw incoming string
-#define DEBUGINCLEAR 1 		// cleared incoming string
+#define DEBUGINLINES 0 		// show incoming lines from client
+#define DEBUGALLOWEDLINES 0
+#define DEBUGRELATIVEPATH 0
 
 #define FILEXTCOUNT 5
-#define FILEEXTSTRING { "html", "htm", "png", "ico", "jpg" } // this 5 to be kept
+#define FILEEXTSTRING 		const char *ext[] = { "html", "htm", "png", "ico", "jpg" };
+#define FILEEXTSENDTYPE		const char *type[] = { "text/html; charset=utf-8", "text/htm; charset=utf-8", "image/png", "image/ico", "image/jpg" };
+#define CODECOUNT 5
+#define FILEEXTSWITCHCASE	switch (logLine.type)\
+							{\
+							case 0:\
+							{\
+								typeID = 0;\
+								break;\
+							}\
+							case 1:\
+							{\
+								typeID = 0;\
+								break;\
+							}\
+							case 2:\
+							{\
+								typeID = 1;\
+								break;\
+							}\
+							case 3:\
+							{\
+								typeID = 2;\
+								break;\
+							}\
+							case 4:\
+							{\
+								typeID = 3;\
+								break;\
+							}\
+							case 5:\
+							{\
+								typeID = 4;\
+								break;\
+							}\
+							default:\
+							{\
+								break;\
+							}\
+							}\
 
-#define CODECOUNT 6
-#define CODESTRING { "HTTP/1.1 200 OK", "HTTP/1.1 400 Bad Request", "HTTP/1.1 404 Not Found", "HTTP/1.1 405 Method Not Allowed", "HTTP/1.1 414 Request-URL Too Long", "HTTP/1.1 500 Internal Server Error" }
+#define CODESTRING 			const char *code[] = { "HTTP/1.1 200 OK\r\n", "HTTP/1.1 404 Not Found\r\n", "HTTP/1.1 405 Method Not Allowed\r\n", "HTTP/1.1 414 Request-URL Too Long\r\n", "HTTP/1.1 500 Internal Server Error\r\n" };
+#define HTTP404STRING		"/pages/system/error404.html"
+#define HTTP404STRINGLEN	32
+#define HTTP500STRING		"/pages/system/error500.html"
+#define HTTP500STRINGLEN	32
+#define HTTP414STRING		"/pages/system/error414.html"
+#define HTTP414STRINGLEN	32
 
+#define SERVERSTRING		"Server: the-min-max-webserver helmut.resch@gmail.com v0.9\r\n"
+#define CONNECTIONSTRING	"Connection: close\r\n"
+#define METHODSALLOWED		"Allow: GET, HEAD\r\n"
+
+#define CALLOCTEMPSTRING	tempString = (char *) calloc (LINELEN, sizeof(char));\
+							if (tempString == NULL)\
+							{\
+								perror("ERROR calloc tempstring");\
+								logLine.error++;\
+							}	
+
+#define FREETEMPSTRING		free(tempString);
+
+#define CLOSELISTENPORT		if (close(listenfd) == -1)\
+							{\
+								perror("ERROR closing listenfd");\
+							}
+
+#define CLOSEWORKINGPORT	if (close(connfd) == -1)\
+							{\
+								perror("ERROR closing connected socket");\
+							}
+
+#define USERAGENTVAR 		const char *agent = "User-Agent:";
+#define HOSTVAR 			const char *host = "Host:";
+#define METHODVAR 			const char *method[] = { "GET", "HEAD" };
+#define CATSECURITYVAR		const char *category = "__security";
+#define CATALLOWEDVAR		const char *category = "___allowed";
+#define CATINCOMINGVAR		const char *category = "__incoming";
+#define CATEXITVAR			const char *category = "______exit";
+#define CATFULLVAR			const char *category[] = { "____system", "______root", "____logger", "____server" , "___handler" , "____closer" };
+
+#define TIMESTAMPFORMAT 	"%a, %d %b %y %T %z"
+
+#define PATHEXECUTEABLE		"..%s"	// need to be changed if executeable is not one level "higher"
+
+#define SPECIALPATH1		"/"
+#define SPECIALPATH1LENGTH	1
+#define SPECIALPATH2		"/index.html"
+#define SPECIALPATH2LENGTH	11
+#define SPECIALPATH3		"/index.htm"
+#define SPECIALPATH3LENGTH	10
 
 typedef struct allowedPath ALLOWEDPATH;
 typedef struct textIncoming TEXTINCOMING;
 typedef struct textOutgoing TEXTOUTGOING;
 typedef struct logFile LOGFILE;
 typedef struct sockaddr_in SOCKADDRIN;
-typedef struct receivedInfo RECEIVEDINFO;
 typedef struct sigaction SIGACTION;
 typedef struct tm TM;
 typedef struct sockaddr_storage SOCKSTORAGE;
@@ -61,19 +149,22 @@ typedef struct dirent DIRENT;
 
 struct logFile
 {
-	char logLineFile[PIPE_BUF];
-	char timezone[LINELEN];
+	char ipAddr[IP4LENGTH];
+	int portNo;
 	int error;
 	int exit;
 	int method;
-};
-
-struct receivedInfo
-{
-	char *homeAdress;
-	char *method;
-	char *relativePath;
-	char *agent;
+	int host;
+	int maxurl;
+	int found;
+	int agentinfo;
+	int type;
+	time_t timeEpoch;
+	char timezone[LINELEN];
+	char homeAdress[LINELEN];
+	char methodString[LINELEN];
+	char relativePath[LINELEN];
+	char agent[LINELEN];
 };
 
 struct allowedPath
@@ -98,6 +189,10 @@ struct textOutgoing
 	char allowed[LINELEN];
 	char content[LINELEN];
 	char load[TEXTLEN];
+	int error;
+	int exit;
+	int lengthTotal;
+	char relativePathCorrected[LINELEN];
 };
 
 // function declarations
@@ -122,9 +217,9 @@ int readIncoming(char *textInBuffer, TEXTINCOMING **text);
 void showIncoming(TEXTINCOMING **text);
 int findIncoming(TEXTINCOMING *text, const char *look, int lines, char **output);
 void freeIncoming(TEXTINCOMING **text);
-int getRelativePath(char **input, char **output);
+int getRelativePath(char *input, char **output);
 
-TEXTOUTGOING codeOutgoing(const char *code, char *date);
+TEXTOUTGOING codeOutgoingHeader(LOGFILE logLine);
 
 // global variable to be available for all functions and signal handler
 

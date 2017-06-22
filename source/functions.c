@@ -2,7 +2,7 @@
 
 void ctrlChandler(int /*@unused@*/dummy)
 {
-	const char *category = "______exit";
+	CATEXITVAR
 	// close open port
 	if (close(listenfd) == -1)
 	{
@@ -19,11 +19,9 @@ void wait_for_child(int /*@unused@*/sig)
 
 int getInteger(char *input, int *numInteger, int lo, int hi)
 {
-	// vars
 	unsigned long int number = 0;
 	char *pointToEnd = NULL;
 
-	// get correct number
 	number = strtoul(input, &pointToEnd, 0);
 	if((int)number < lo || (int)number > hi || *pointToEnd != '\0')
 	{
@@ -38,10 +36,8 @@ int getInteger(char *input, int *numInteger, int lo, int hi)
 
 void screenLog(const char name[11], long unsigned int counter, int pid, int ppid, int topid)
 {
-	// vars
 	char infoString[LINELEN];
 
-	// screen log with write to avoid buffer
 	if (snprintf(infoString, sizeof(infoString),"%s\tNO[%6lu]\tPID[%6d]\tPPID[%6d]\tTOPID[%6d]\n", name, counter, pid, ppid, topid) == (int)(strlen(infoString)))
 	{
 		if (write(STDOUT_FILENO, infoString, strlen(infoString)) == -1)
@@ -51,8 +47,7 @@ void screenLog(const char name[11], long unsigned int counter, int pid, int ppid
 	}
 }
 
-void
-screenInfo(const char *category, int goodbad, char *string, int number)
+void screenInfo(const char *category, int goodbad, char *string, int number)
 {
 	if (goodbad == 0)
 	{
@@ -66,9 +61,13 @@ screenInfo(const char *category, int goodbad, char *string, int number)
 	{
 		printf("%s\tINFO!    \t%s\n", category, string);
 	}
-	else
+	else if (goodbad == 3)
 	{
 		printf("%s\t%s\n", category, string);
+	}
+	else if (goodbad == 4)
+	{
+		printf("%s\tINFO!    \t%s: %d\n", category, string, number);
 	}
 }
 
@@ -76,9 +75,7 @@ int readIncoming(char *textInBuffer, TEXTINCOMING **text)
 {
 	int length = 0, lines = 0, i = 0, j = 0, k = 0, temp = 0;
 	char **inText, *lineToken = NULL, *saveptr = NULL;
-	const char *category = "__incoming";
 
-	//get length and lines
 	length = strlen(textInBuffer);
 	for (i = 0; i < length; i++)
 	{
@@ -88,9 +85,7 @@ int readIncoming(char *textInBuffer, TEXTINCOMING **text)
 		}
 	}
 	lines--;
-	screenInfo(category, 2, "total lines received from client", lines);
 
-	// calloc
 	inText = (char **) calloc((size_t)(lines), (sizeof(char *)));
 	if (inText == NULL)
 	{
@@ -108,7 +103,6 @@ int readIncoming(char *textInBuffer, TEXTINCOMING **text)
 		}
 	}
 
-	// divide
 	lineToken = strtok_r(textInBuffer, "\n", &saveptr);
 	while (k < lines)
 	{
@@ -132,6 +126,7 @@ int readIncoming(char *textInBuffer, TEXTINCOMING **text)
 			}
 		}
 		inText[k][temp] = '\0';
+
 		TEXTINCOMING *pAct;
 		pAct = (TEXTINCOMING *) malloc (1 * sizeof(TEXTINCOMING));
 		if (pAct == NULL)
@@ -145,12 +140,12 @@ int readIncoming(char *textInBuffer, TEXTINCOMING **text)
 			return 0;
 		}
 		pAct->incomeVar[temp] = '\0';
-		if(*text == NULL) // if this is first dataset
+		if(*text == NULL)
 		{
 			pAct->pNext = NULL;
 			*text = pAct;
 		}
-		else // every other dataset will be shifted to the beginning
+		else
 		{
 			pAct->pNext = *text;
 			*text = pAct;
@@ -196,16 +191,14 @@ void freeIncoming(TEXTINCOMING **text)
 void showIncoming(TEXTINCOMING **text)
 {
 	TEXTINCOMING *pAct;
-	const char *category = "__incoming";
+	CATINCOMINGVAR
 
 	if (text == NULL)
 	{
 		return;
 	}
-
 	pAct = *text;
-
-	while(1) // break of the loop if pNext = NULL
+	while(1)
 	{
 		screenInfo(category, 3, pAct->incomeVar, 0);
 		if (pAct->pNext == NULL)
@@ -214,7 +207,7 @@ void showIncoming(TEXTINCOMING **text)
 		}
 		else
 		{
-			pAct = pAct->pNext; // next iteration
+			pAct = pAct->pNext;
 		}
 	}
 }
@@ -224,7 +217,6 @@ int findIncoming(TEXTINCOMING *text, const char *look, int lines, char **output)
 	TEXTINCOMING *pAct;
 
 	pAct = text;
-
 	while(1)
 	{
 		if(strncmp(look, pAct->incomeVar, strlen(look)) == 0)
@@ -239,16 +231,14 @@ int findIncoming(TEXTINCOMING *text, const char *look, int lines, char **output)
 				return 1;
 			}
 		}
-
-		pAct = pAct->pNext; // next iteration
-
+		pAct = pAct->pNext;
 		if (pAct->pNext == NULL)
 		{
 			if(strncmp(look, pAct->incomeVar, strlen(look)) == 0)
 			{
 				if (strncpy(*output, pAct->incomeVar, strlen(pAct->incomeVar)) != *output)
 				{
-					perror("ERROR error strncpy find incoming list");
+					perror("ERROR strncpy find incoming list");
 					return 0;
 				}
 				else
@@ -267,8 +257,33 @@ int findIncoming(TEXTINCOMING *text, const char *look, int lines, char **output)
 int readAllowed(ALLOWEDPATH **path)
 {
 	int level = 0;
-   	recursiveWalk(&(*path), "..", level);
+	ALLOWEDPATH *pAct;
+	
+	// add manual / path
+	pAct = (ALLOWEDPATH *) malloc (1 * sizeof(ALLOWEDPATH));
+	if (pAct == NULL)
+	{
+		perror("ERROR allocating memory list allowed");
+		return 0;
+	}
+	if (strncpy(pAct->pathVar, SPECIALPATH1, SPECIALPATH1LENGTH) != pAct->pathVar)
+	{
+		perror("ERROR strncpy to allowed list");
+		return 0;
+	}
+	pAct->pathVar[1] = '\0';
+	if(*path == NULL)
+	{
+		pAct->pNext = NULL;
+		*path = pAct;
+	}
+	else
+	{
+		pAct->pNext = *path;
+		*path = pAct;
+	}
 
+   	recursiveWalk(&(*path), "..", level);
 	return 1;
 }
 
@@ -277,7 +292,7 @@ int recursiveWalk(ALLOWEDPATH **path, const char *pathName, int level)
 	DIR *dir;
    	DIRENT *entry;
 	int temp = 0;
-	const char *ext[] = FILEEXTSTRING;
+	FILEEXTSTRING;
 
    	if (!(dir = opendir(pathName))) 
 	{
@@ -336,12 +351,12 @@ int recursiveWalk(ALLOWEDPATH **path, const char *pathName, int level)
 				return 0;
 			}
 			pAct->pathVar[temp] = '\0';
-			if(*path == NULL) // if this is first dataset
+			if(*path == NULL)
 			{
 				pAct->pNext = NULL;
 				*path = pAct;
 			}
-			else // every other dataset will be shifted to the beginning
+			else
 			{
 				pAct->pNext = *path;
 				*path = pAct;
@@ -380,16 +395,14 @@ void freeAllowed(ALLOWEDPATH **path)
 void showAllowed(ALLOWEDPATH **path)
 {
 	ALLOWEDPATH *pAct;
-	const char *category = "___allowed";
+	CATALLOWEDVAR
 
 	if (path == NULL)
 	{
 		return;
 	}
-
 	pAct = *path;
-
-	while(1) // break of the loop if pNext = NULL
+	while(1)
 	{
 		screenInfo(category, 3, pAct->pathVar, 0);
 		if (pAct->pNext == NULL)
@@ -398,7 +411,7 @@ void showAllowed(ALLOWEDPATH **path)
 		}
 		else
 		{
-			pAct = pAct->pNext; // next iteration
+			pAct = pAct->pNext;
 		}
 	}
 }
@@ -406,30 +419,38 @@ void showAllowed(ALLOWEDPATH **path)
 int findAllowed(ALLOWEDPATH *path, const char *look, int lines)
 {
 	ALLOWEDPATH *pAct;
-	int count = 0;
-
+	int count = 0, temp1 = 0, temp2 = 0, temp3 = 0;
 	
 	pAct = path;
 
+	temp1 = strlen(pAct->pathVar);
+	temp2 = strlen(look);
+
+	if (temp1 > temp2)
+	{
+		temp3 = temp1;
+	}
+	else
+	{
+		temp3 = temp2;
+	}
 	while(1)
 	{
-		if(strncmp(pAct->pathVar, look, strlen(pAct->pathVar)) == 0)
+		if(strncmp(pAct->pathVar, look, temp3) == 0)
 		{
 			return 1;
 		}
-
-		pAct = pAct->pNext; // next iteration
+		pAct = pAct->pNext;
 		count++;
-
 		if (pAct->pNext == NULL)
 		{
-			if(strncmp(pAct->pathVar, look, strlen(pAct->pathVar)) == 0)
+			if(strncmp(pAct->pathVar, look, temp3) == 0)
 			{
 				return 1;
 			}
 			else
 			{
-				if (look[0] == '/' && strlen(look) == 1)
+				if (look[0] == '/' && temp2 == 1)
 				{
 					return 1;
 				}
@@ -442,32 +463,54 @@ int findAllowed(ALLOWEDPATH *path, const char *look, int lines)
 	}
 }
 
-int getRelativePath(char **input, char **output)
+int getRelativePath(char *input, char **output)
 {
 	char *start = NULL;
 	size_t end = 0;
-	const char *category = "__security";
 
-	// find relative path and ignore .../ - rest is wrong URL
-	start = strchr(*input, '/');
+	start = strchr(input, '/');
 	if(start == NULL)
 	{
 		perror("ERROR strchr / relative path");
 		return 0;
 	}
 	end = strlen(start) - URLENDING;
-	if (strncpy(*output, start, (size_t)(end)) != *output)
+	if(start[0] == '/' && end == 1)
+	{
+		if (strncpy(*output, SPECIALPATH2, SPECIALPATH2LENGTH) != *output)
+		{
+			return 0;
+		}
+		else
+		{
+			return 1;
+		}
+	}
+	else if (strncpy(*output, start, (size_t)(end)) != *output)
 	{
 		return 0;
 	}
 	else
 	{
-		screenInfo(category, 2, *output, strlen(*output));
-		return 1;
+		if(strncmp(*output, SPECIALPATH3, SPECIALPATH3LENGTH) == 0)
+		{
+			if (strncpy(*output, SPECIALPATH2, SPECIALPATH2LENGTH) != *output)
+			{
+				return 0;
+			}
+			else
+			{
+				return 1;
+			}
+		}
+		else
+		{
+			return 1;
+		}
 	}
 }
 
 void help()
 {
-	//
+
 }

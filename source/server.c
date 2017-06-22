@@ -2,26 +2,29 @@
 
 int main (int argc, char *argv[])
 {
-	// some vars
 	int connfd = 0, optval = 0, pipeCPchar[2], overhandedPort = 0, i = 0, pidSave = 0, rvGetOpt = 0, inputCount = 0;
-	char textInBuffer[TEXTLEN], textFromConnection[TEXTLEN];
-	const char *category[] = { "____system", "______root", "____logger", "____server" , "___handler" , "____closer" };
+	char textInBuffer[TEXTLEN], textFromConnection[TEXTLEN], logLineFile[PIPE_BUF], sendBuffer[TEXTLENSEND];
 	unsigned long int serverInfoCounter = 0;	//	overall counter for info
 	bool endless = true;
-	SOCKADDRIN servaddr, cliaddr;
+	pid_t forkPID1, forkPID2;
 	socklen_t len;
+	SIGACTION sa;
+	SOCKADDRIN servaddr, cliaddr;
 	LOGFILE logLine;
 	TEXTOUTGOING textOutBuffer;
-	SIGACTION sa;
-	pid_t forkPID1, forkPID2;
+	CATFULLVAR
 
-	char textOutBufferheader[] = "HTTP/1.1 200 OK\r\nDate: 21.06.17\r\nServer: my_new_min_max_www_server\r\nConnection: close\r\nContent-Type: text/html; charset=utf-8\r\n\r\n";
-	char textOutBufferload[] = "<!DOCTYPE html><html><head><title>my new funky webserver</title></head><body><h1>it is just a first test of my new webserver concept, come back soon...</h1></body></html>\r\n\r\n";
+	// init
+	memset(textInBuffer, 0, sizeof(textInBuffer));
+	memset(textFromConnection, 0 , sizeof(textFromConnection));
+	memset(logLineFile, 0 , sizeof(logLineFile));
+	memset(sendBuffer, 0 , sizeof(sendBuffer));
 
 	// screen output and check if enough arguments were provided from command line
 	printf("\n");
 	screenInfo(category[0], 3, "minimum maximum HTTP/1.1 server project helmut.resch@gmail.com", 0);
 	printf("\n");
+
 	while((rvGetOpt = getopt(argc, argv, "p:h")) != -1)
 	{
 		switch(rvGetOpt)
@@ -46,7 +49,7 @@ int main (int argc, char *argv[])
 		default:
 		{
 			help();
-			exit(EXIT_FAILURE);
+			exit(EXIT_SUCCESS);
 		}
 		}
 	}
@@ -138,7 +141,6 @@ int main (int argc, char *argv[])
 	{
 		// child code PID1 log
 		screenLog(category[2], serverInfoCounter, (int)(getpid()), (int)(getppid()), pidSave);
-		printf("\n");
 
 		// set pipe one time and keep open, close only on error
 		if (close(pipeCPchar[1]) == -1)
@@ -162,14 +164,9 @@ int main (int argc, char *argv[])
 					textFromConnection[i] = '\0';
 				}
 			}
-
 #if DEBUGPIPE
-
-			// screeninfo
 			screenInfo(category[2], 3, textFromConnection, 0);
-			printf("\n");
 #endif
-
 		}
 
 		// close pipe only on error above
@@ -229,70 +226,19 @@ int main (int argc, char *argv[])
 				}
 
 #if DEBUGINRAW
-
-				// screeninfo
 				screenInfo(category[4], 3, textInBuffer, 0));
 #endif
 
-				// decode input	and send output and receive message to log
+				// decode input	and send output and receive message to log = incoming.c
 				logLine = decodeIncoming(textInBuffer, connfd);
 
-				// safety warning after RISK warning and exit
-				if (logLine.exit != 0)
+				// prepare string for pipe
+				if (snprintf(logLineFile, PIPE_BUF, "URL %s%s | %ju s since Epoch | local time: %s | %s | peer IP %s:%d",
+						logLine.homeAdress, logLine.relativePath, logLine.timeEpoch, logLine.timezone, logLine.agent, logLine.ipAddr, logLine.portNo) != strlen(logLineFile))
 				{
-					// safety exit
-					screenInfo(category[1], 0, "exit trigger occured total", logLine.exit);
-					exit(EXIT_FAILURE);
+					perror("ERROR snprintf logLineFile");
+					logLine.error++;
 				}
-				else
-				{
-					// info about status and proceed
-					screenInfo(category[1], 2, "no exit trigger occured", 0);
-				}
-				
-				// if safe but other errors warning and exit
-				if (logLine.error != 0)
-				{
-					// safety exit
-					screenInfo(category[1], 0, "error trigger occured total", logLine.error);
-					exit(EXIT_FAILURE);
-				}
-				else
-				{
-					// info about status and proceed
-					screenInfo(category[1], 2, "no error trigger occured", logLine.error);
-				}
-
-				// collect data
-
-				//textOutBuffer = codeOutgoing();
-				//codeOutgoing(const char *code, const char *server)
-				
-				// send header
-				if (logLine.method == 1)
-				{
-					// GET
-					if (send(connfd, textOutBufferheader, strlen(textOutBufferheader), MSG_NOSIGNAL) == -1)
-					{
-						perror("error send HTML header");
-						exit(EXIT_FAILURE);
-					}
-				}
-				else
-				{
-					// HEAD
-				}
-
-				// send load like foreseen
-				if (logLine.method == 1)
-				{
-					if (send(connfd, logLine.logLineFile, strlen(logLine.logLineFile), MSG_NOSIGNAL) == -1)
-					{
-						perror("error send HTML load");
-						exit(EXIT_FAILURE);
-					}
-				}
-
 				// set pipe
 				if (close(pipeCPchar[0]) == -1)
 				{
@@ -301,7 +247,7 @@ int main (int argc, char *argv[])
 				}
 
 				// write to pipe
-				if (write(pipeCPchar[1], logLine.logLineFile, PIPE_BUF) != (ssize_t)(PIPE_BUF))
+				if (write(pipeCPchar[1], logLineFile, PIPE_BUF) != (ssize_t)(PIPE_BUF))
 				{
 					perror("ERROR writing pipe 1");
 					exit (EXIT_FAILURE);
@@ -311,6 +257,83 @@ int main (int argc, char *argv[])
 				if (close(pipeCPchar[1]) == -1)
 				{
 					perror("ERROR closing pipe 1");
+					exit(EXIT_FAILURE);
+				}
+
+				screenInfo(category[1], 2, logLine.ipAddr, 0);
+				screenInfo(category[1], 2, logLine.timezone, 0);
+				screenInfo(category[1], 2, logLine.relativePath, 0);
+
+				// exit check without answer
+				if (logLine.exit != 0)
+				{
+					screenInfo(category[1], 0, "exit trigger total", logLine.exit);
+					screenInfo(category[1], 4, "no IP addr. or no HOST received", 0);
+					screenInfo(category[1], 4, "closing connection without response", 0);
+					exit(EXIT_FAILURE);
+				}
+				else
+				{
+					screenInfo(category[1], 2, "no exit trigger", 0);
+				}
+
+				// error status information 
+				if (logLine.error != 0)
+				{
+					screenInfo(category[1], 1, "error trigger total", logLine.error);
+					screenInfo(category[1], 4, "responding accordingly", 0);
+				}
+				else
+				{
+					screenInfo(category[1], 2, "no error trigger", logLine.error);
+				}
+				
+				// organize outgoing informations, strings, etc.
+				textOutBuffer = codeOutgoingHeader(logLine);
+
+				// send header data
+				if (logLine.method == 0)
+				{
+					// header for HTTP/1.1 405 Method Not Allowed
+					if (snprintf(sendBuffer, sizeof(sendBuffer), "%s%s\r\n", textOutBuffer.code, textOutBuffer.allowed) != strlen(sendBuffer))
+					{
+						perror("ERROR snprintf sendbuffer");
+					}
+				}
+				else
+				{
+					// header data for HTTP/1.1 200 OK, HTTP/1.1 404 Not Found, HTTP/1.1 414 Request-URL Too Long, HTTP/1.1 500 Internal Server Error
+					if (snprintf(sendBuffer, sizeof(sendBuffer), "%s%s%s%s%s%s\r\n", textOutBuffer.code, textOutBuffer.date, textOutBuffer.server, textOutBuffer.contentlength, textOutBuffer.connection, textOutBuffer.content) != strlen(sendBuffer))
+					{
+						perror("ERROR snprintf sendbuffer");
+					}
+
+				}
+				
+				// send header
+				if (send(connfd, sendBuffer, strlen(sendBuffer), MSG_NOSIGNAL) == -1)
+				{
+					perror("ERROR send HTML header");
+					exit(EXIT_FAILURE);
+				}
+			
+				// now the real content after GET Method
+
+				int retSend = 0;
+				int filetosend = 0;
+				memset(sendBuffer, 0 , sizeof(sendBuffer));
+				filetosend = open(textOutBuffer.relativePathCorrected, O_RDONLY);				
+				while ((retSend = read(filetosend, sendBuffer, textOutBuffer.lengthTotal)) > 0)
+				{
+					if (send(connfd, sendBuffer, retSend, MSG_NOSIGNAL) == -1)
+					{
+						perror("ERROR send data");
+						exit(EXIT_FAILURE);
+					}
+				}
+				if (close(filetosend) == -1)
+				{
+					perror("ERROR close file after send");
 					exit(EXIT_FAILURE);
 				}
 

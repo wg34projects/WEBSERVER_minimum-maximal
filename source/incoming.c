@@ -2,42 +2,51 @@
 
 LOGFILE decodeIncoming(char *textInBuffer, int connfd)
 {
-	// vars
 	LOGFILE logLine;
-	int linesIncoming = 0, linesAllowed = 0, maxURLCheck = 0, portNo = 0;
-	char ipAddr[15];
-	RECEIVEDINFO *clientinfo = NULL;
 	ALLOWEDPATH *pHead = NULL;
 	TEXTINCOMING *pTop = NULL;
 	SOCKADDRIN *conn;
 	SOCKSTORAGE clientAdress;
 	TM *timeStamp, timeTemp;
-	time_t timeEpoch;
 	socklen_t length;
-	const char *agent = "User-Agent:";
-	const char *host = "Host:";
-	const char *method[] = { "GET", "HEAD" };
-	const char *category = "__security";
+	int linesIncoming = 0, linesAllowed = 0;
+	char *tempString;
+	USERAGENTVAR
+	HOSTVAR
+	METHODVAR
+	CATSECURITYVAR
+	FILEEXTSTRING
 
-	// prepare variables
+	// init
+	memset(logLine.timezone, 0, sizeof(logLine.timezone));
+	memset(logLine.ipAddr, 0, sizeof(logLine.ipAddr));
+	memset(logLine.methodString, 0, sizeof(logLine.methodString));
+	memset(logLine.relativePath, 0, sizeof(logLine.relativePath));
+	memset(logLine.homeAdress, 0, sizeof(logLine.homeAdress));
+	memset(logLine.agent, 0, sizeof(logLine.agent));
 	logLine.exit = 0;
 	logLine.error = 0;
-	memset(logLine.logLineFile, 0, sizeof(logLine.logLineFile));
-	memset(logLine.timezone, 0, sizeof(logLine.timezone));
+	logLine.method = 0;
+	logLine.portNo = 0;
+	logLine.host = 0;
+	logLine.maxurl = 0;
+	logLine.timeEpoch = 0;
+	logLine.found = 0;
+	logLine.agentinfo = 0;
+	logLine.type = 0;
 
-	// prepare IP stamp
+	// IP info
 	length = (socklen_t)sizeof(clientAdress);
 	if (getpeername(connfd, (SOCKADDR*)&clientAdress, &length) == -1)
 	{
 		perror("ERROR getpeername");
-		logLine.exit++;
+		logLine.exit++;		// exit trigger
 	}
 	conn = (SOCKADDRIN*)&clientAdress;
-	portNo = ntohs(conn->sin_port);
-	if (inet_ntop(AF_INET, &conn->sin_addr, ipAddr, INET_ADDRSTRLEN) == NULL) 
+	logLine.portNo = ntohs(conn->sin_port);
+	if (inet_ntop(AF_INET, &conn->sin_addr, logLine.ipAddr, INET_ADDRSTRLEN) == NULL)
 	{
 		perror("error inet_ntop");
-		printf("while converting IP [%s] to string - ", ipAddr);
 		if (errno == EAFNOSUPPORT)
 		{
 			perror("EAFNOSUPPORT = not a valid adress family");
@@ -46,21 +55,21 @@ LOGFILE decodeIncoming(char *textInBuffer, int connfd)
 		{
 			perror("ENOSPC = converted string would exceed the given size");
 		}
-		logLine.exit++;
+		logLine.exit++;		// exit trigger
 	}
 
-	// prepare timestamp
-	timeEpoch = time(NULL);
-	timeStamp = localtime_r(&timeEpoch, &timeTemp);
+	// timestamp
+	logLine.timeEpoch = time(NULL);
+	timeStamp = localtime_r(&logLine.timeEpoch, &timeTemp);
 	if (timeStamp == NULL)
 	{
 		perror("ERROR localtime");
-		logLine.error++;
+		logLine.error++;		// error trigger
 	}
-	if (strftime(logLine.timezone, sizeof(logLine.timezone), "%a, %d %b %y %T %z", timeStamp) == 0)
+	if (strftime(logLine.timezone, sizeof(logLine.timezone), TIMESTAMPFORMAT, timeStamp) == 0)
 	{
 		perror("ERROR strftime returned 0");
-		logLine.error++;
+		logLine.error++;		// error trigger
 	}
 	for (int i = 0; i < (int)strlen(logLine.timezone); i++)
 	{
@@ -70,108 +79,97 @@ LOGFILE decodeIncoming(char *textInBuffer, int connfd)
 		}
 	}
 
-	// add incoming data to linked list
+	// incoming data to linked list
 	linesIncoming = readIncoming(textInBuffer, &pTop);
 	if (linesIncoming == 0)
 	{
-		logLine.error++;
+		logLine.error++;		// error trigger
 	}
-
-	// callocs
-	clientinfo = (RECEIVEDINFO *) calloc (1, sizeof(RECEIVEDINFO));
-	if(clientinfo == NULL)
-	{
-		perror("ERROR calloc clientinfo");
-		logLine.error++;
-	}
-	clientinfo->method = (char *) calloc (LINELEN, sizeof(char));
-	if (clientinfo->method == NULL)
-	{
-		perror("ERROR calloc clientinfo->method");
-		logLine.error++;
-	}
-	clientinfo->relativePath = (char *) calloc (LINELEN, sizeof(char));
-	if (clientinfo->relativePath == NULL)
-	{
-		perror("ERROR calloc clientinfo->relativePath");
-		logLine.error++;
-	}
-	clientinfo->homeAdress = (char *) calloc (LINELEN, sizeof(char));
-	if (clientinfo->homeAdress == NULL)
-	{
-		perror("ERROR calloc clientinfo->homeAdress");
-		logLine.error++;
-	}
-	clientinfo->agent = (char *) calloc (LINELEN, sizeof(char));
-	if (clientinfo->agent == NULL)
-	{
-		perror("ERROR calloc clientinfo->agent");
-		logLine.error++;
-	}
-
-#if DEBUGINCLEAR
-
-	// put info to STDOUT incoming request
+	screenInfo(category, 4, "lines received from client", linesIncoming);
+#if DEBUGINLINES
 	showIncoming(&pTop);
-
 #endif
 
-	// find valid method and valid url length and stop
-	if (findIncoming(pTop, method[0], linesIncoming, &clientinfo->method) == 1)
+	// method
+	CALLOCTEMPSTRING
+	if (findIncoming(pTop, method[0], linesIncoming, &tempString) == 1)
 	{
-		logLine.method = 1;	// GET
+		logLine.method = 1;
+		screenInfo(category, 2, "valid method GET received", 1);
 	}
-	else if (findIncoming(pTop, method[1], linesIncoming, &clientinfo->method) == 1)
+	else if (findIncoming(pTop, method[1], linesIncoming, &tempString) == 1)
 	{
-		logLine.method = 2;	// HEAD
+		logLine.method = 2;
+		screenInfo(category, 2, "valid method HEAD received", 2);
 	}
 	else
 	{
 		logLine.method = 0;
+		screenInfo(category, 0, "no valid method GET or HEAD received", 0);
+		logLine.error++;		// error trigger
 	}
-	if (logLine.method == 0)
+	if (strncpy(logLine.methodString, tempString, strlen(tempString)) != logLine.methodString)
 	{
-		screenInfo(category, 0, "no valid method, response and exit", 0);
-		//later response like should be
-		logLine.exit++;
+		perror("ERROR error strncpy method");
+		logLine.error++;		// error trigger
+	}
+	FREETEMPSTRING
+
+	// host, homeadress, relative path
+	CALLOCTEMPSTRING
+	if (findIncoming(pTop, host, linesIncoming, &tempString) == 0)
+	{
+		logLine.host = 0;
+		screenInfo(category, 0, "no host info received", 0);
+		logLine.exit++;		// exit trigger
 	}
 	else
 	{
-		screenInfo(category, 2, "valid method found", 0);
+		logLine.host = 1;
+		screenInfo(category, 2, "host info received", 0);
 	}
-
-	maxURLCheck = strlen(clientinfo->method);
-
-	if (maxURLCheck > MAXURL+URLNORMAL)
+	if (strncpy(logLine.homeAdress, tempString+6, strlen(tempString)) != logLine.homeAdress)
 	{
+		perror("ERROR error strncpy homeAdress");
+		logLine.error++;		// error trigger
+	}
+	FREETEMPSTRING
+	CALLOCTEMPSTRING
+	if (getRelativePath(logLine.methodString, &tempString) == 0)
+	{
+		screenInfo(category, 0, "no relative path determinable", 0);
+		logLine.error++;		// error trigger
+	}
+	else
+	{
+		screenInfo(category, 2, "relative path determinable", 0);
+	}
+	if (strncpy(logLine.relativePath, tempString, strlen(tempString)) != logLine.relativePath)
+	{
+		perror("ERROR error strncpy relativePath");
+		logLine.error++;		// error trigger
+	}
+	FREETEMPSTRING
+
+#if DEBUGRELATIVEPATH
+	screenInfo(category, 3, "valid method GET received", 1);
+#endif
+
+	// max URL length
+	if (strlen(logLine.relativePath) > MAXURL)
+	{
+		logLine.maxurl = 0;
 		screenInfo(category, 0, "received URL exceeds maximum length of", MAXURL);
-		//later page like should be
-		logLine.exit++;
+		if (strncpy(logLine.relativePath, tempString, strlen(tempString)) != logLine.relativePath)
+		{
+			perror("ERROR error strncpy relativePath");
+			logLine.error++;		// error trigger
+		}
 	}
 	else
 	{
+		logLine.maxurl = 1;
 		screenInfo(category, 2, "received URL length in range", 0);
-	}
-
-	// find valid host
-	if (findIncoming(pTop, host, linesIncoming, &clientinfo->homeAdress) == 0)
-	{
-		screenInfo(category, 0, "no host found, exit", 0);
-		logLine.exit++;
-	}
-	else
-	{
-		screenInfo(category, 2, "host found", 0);
-	}
-
-	if (getRelativePath(&clientinfo->method, &clientinfo->relativePath) == 0)
-	{
-		screenInfo(category, 0, "no relative path extractable", 0);
-		logLine.exit++;
-	}
-	else
-	{
-		screenInfo(category, 2, "relative path could be extracted", 0);
 	}
 
 	// find allowed relative paths
@@ -179,46 +177,57 @@ LOGFILE decodeIncoming(char *textInBuffer, int connfd)
 	if (linesAllowed == 0)
 	{
 		perror("ERROR reading allowed paths");
-		logLine.error++;
+		logLine.error++;		// error trigger
 	}
+#if DEBUGALLOWEDLINES
 	showAllowed(&pHead);
+#endif
 
-	if (findAllowed(pHead, clientinfo->relativePath, linesAllowed) == 0)
+	if (findAllowed(pHead, logLine.relativePath, linesAllowed) == 0)
 	{
-		screenInfo(category, 1, "no allowed relative path", 0);
-		// later correct page
-		logLine.exit++;
+		logLine.found = 0;
+		screenInfo(category, 1, "requested file not in list of allowed", 0);
+		logLine.error++;		// error trigger
 	}
 	else
 	{
-		screenInfo(category, 2, "allowed relative path found", 1);
+		logLine.found = 1;
+		screenInfo(category, 2, "requested file in list of allowed", 1);
+
+		for (int i = 1; i < FILEXTCOUNT; i++)
+		{
+			if (strncmp(&(logLine.relativePath[strlen(logLine.relativePath)-3]), ext[i], 3) == 0)
+			{
+				logLine.type = i + 1;
+			}
+		}
+		if (strncmp(&(logLine.relativePath[strlen(logLine.relativePath)-4]), ext[0], 4) == 0)
+		{
+			logLine.type = 1;
+		}
 	}
 
-	// find valid user agent
-	if (findIncoming(pTop, agent, linesIncoming, &clientinfo->agent) == 0)
+	// user agent
+	CALLOCTEMPSTRING
+	if (findIncoming(pTop, agent, linesIncoming, &tempString) == 0)
 	{
+		logLine.agentinfo = 0;
 		screenInfo(category, 1, "no agent found but no risk detected", 0);
 	}
 	else
 	{
+		logLine.agentinfo = 0;
 		screenInfo(category, 2, "valid agent received", 0);
 	}
-
-	// logline
-	if (snprintf(logLine.logLineFile, PIPE_BUF, "URL %s%s | %ju s since Epoch | local time: %s | %s | peer IP %s:%d",
-			clientinfo->homeAdress, clientinfo->relativePath, (uintmax_t)timeEpoch, logLine.timezone, clientinfo->agent, ipAddr, portNo) != strlen(logLine.logLineFile))
+	if (strncpy(logLine.agent, tempString, strlen(tempString)) != logLine.agent)
 	{
-		perror("ERROR snprintf logLine.logLineFile");
-		logLine.error++;
+		perror("ERROR error strncpy agent");
+		logLine.error++;		// error trigger
 	}
+	FREETEMPSTRING
 
-	// clean
-	free(clientinfo->method);
-	free(clientinfo->relativePath);
-	free(clientinfo->homeAdress);
-	free(clientinfo->agent);
-	free(clientinfo);
-	freeIncoming(&pTop);
+	// free linked lists
 	freeAllowed(&pHead);
+	freeIncoming(&pTop);
 	return logLine;
 }

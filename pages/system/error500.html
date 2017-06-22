@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style> 
+.flex-container {
+    display: -webkit-flex;
+    display: flex;  
+    -webkit-flex-flow: row wrap;
+    flex-flow: row wrap;
+    text-align: center;
+	font-family:arial;
+}
+
+.flex-container > * {
+    padding: 5px;
+    -webkit-flex: 1 100%;
+    flex: 1 100%;
+}
+
+.article {
+    text-align: left;
+}
+
+header {background: red;color:white;}
+footer {background: #aaa;color:white;}
+.nav {background:#eee;}
+
+.nav ul {
+    list-style-type: none;
+    padding: 0;
+}
+.nav ul a {
+    text-decoration: none;
+}
+
+@media all and (min-width: 768px) {
+    .nav {text-align:left;-webkit-flex: 1 auto;flex:1 auto;-webkit-order:1;order:1;}
+    .article {-webkit-flex:5 0px;flex:5 0px;-webkit-order:2;order:2;}
+    footer {-webkit-order:3;order:3;}
+}
+</style>
+</head>
+<body>
+
+<div class="flex-container">
+<header>
+  <h1>HTTP/1.1 500 Internal Server Error</h1>
+</header>
+
+<nav class="nav">
+<ul>
+  <li><a href="../index.html">Start</a></li>
+  <li><a href="../pages/mandelbrotgallery.html">Mandelbrot</a></li>
+</ul>
+</nav>
+
+<article class="article">
+  <h1>Links</h1>
+  <p><a href="../../index.html">return to the main page</a><p>
+  <p><strong>home</strong></p>
+</article>
+
+<article class="article">
+  <h1>Information</h1>
+  <p><a href="https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html">more information about error</a><p>
+  <p><strong>knowledge</strong></p>
+</article>
+
+<footer><p>copyright &copy; Helmut Resch  <a href="mailto:helmut.resch@gmail.com?Subject=response%20from%20dwell.goip.de:8888" target="_top">mail to server developer :-)</a></p><p><small>all pictures and documents that are physically located on dwell.goip.de:8888 are my personal property, as long as you mention me you are free to use them - external links chosen with responsibility but without guarantee</small></p></footer>
+</div>
+
+</body>
+</html>
+
