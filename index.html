@@ -12,7 +12,7 @@
 }
 
 .flex-container > * {
-    padding: 5px;
+    padding: 15px;
     -webkit-flex: 1 100%;
     flex: 1 100%;
 }
@@ -44,31 +44,49 @@ footer {background: #aaa;color:white;}
 
 <div class="flex-container">
 <header>
-  <h1>the-min-max-webserver v0.9</h1>
+  <h1>the-minimum-maximal-webserver v0.9 project</h1>
 </header>
 
 <nav class="nav">
 <ul>
-  <li><a href="../index.html">Start</a></li>
-  <li><a href="../pages/mandelbrotgallery.html">Mandelbrot</a></li>
+  <h1>Navigate</h1>
+  <p><li><a href="../index.html">Start</a></li></p>
+  <p><li><a href="../pages/mandelbrotgallery.html">Fractal Gallery</a></li></p>
+  <p><li><a href="../pages/system/documentation.html">Documentation</a></li></p>
+  <p><li><a href="http://www.dwell.at/">www.dwell.at</a></li></p>
 </ul>
 </nav>
 
 <article class="article">
-  <h1>Links</h1>
-  <p><a href="http://www.dwell.at">my homepage at FH Technikum Wien</a></p>
-  <p><a href="http://dwell.goip.de:8765">my first webserver FH task</a></p>
-  <p><a href="http://www.technikum-wien.at">FH Technikum Wien</a></p>
-  <p><strong>some of my work as student</strong></p>
+  <h1>Informations</h1>
+  <p>Why coding a webserver if there are exisiting and much better ones?</p>
+  <p>Working with data connections, especially the TCP protocol is pretty interesting and cool. And it is a good training :-)</p>
+  <p>Find below the flow-diagram of the server, klick it to enlarge.</p>
+  <p>As soon as I reach version 1.0 I will publish the code on github for one who is interested.</p>
+  <p>Check also the Documentation part in Navigation for more details regarding this server.</p>
+  <p>All pages and pictures shown within dwell.goip.de:8888 are provided by an Raspberry PI 3, more infos soon.</p>
+  <p><a href="../pictures/documentation/flowdiagram-server.jpg"><img src="../pictures/documentation/flowdiagram-server.jpg" alt="flowdiagram-webserver" style="width:400px;height:600px;border:0;"></a></p>
 </article>
 
 <article class="article">
-  <h1>Informations</h1>
-  <p>why coding a webserver if there are exisiting and much better ones?</p>
-  <p></p>
-  <h3>flow diagram server</h3>
-  <p><a href="../pictures/documentation/flowdiagram-server.jpg"><img src="../pictures/documentation/flowdiagram-server.jpg" alt="flowdiagram-webserver" style="width:350px;height:525px;border:0;"></a></p>
-  <p><strong>some informations</strong></p>
+  <h1>Mandelbrot Fractals</h1>
+  <p>In 2k17 I've chosen as task in POSIX C to realize a Pixel Generator which exchanges data over shared memory and coordinates the synchonisatzion between a generator process and a receiver process with semaphores.</p>
+  <p>As one proposal, the generator should calculate the Mandelbrot set in a loop. The calculation itself, thanks to thousands of examples found in internet, was easy to realize, much easier than the interprocess communication.</p>
+  <p>The task was not the Mandelbrot set calculation, but this got for me to the most fascinating part of this task. I started to work and experiment with different color mappings and spent lot of kwh in electrical power.</p>
+  <p>Due to that reason I recoded after handing in my task the whole tool to a standalone, 4 thread application for Linux. I will continue working on that stuff, planning (already started) a nice GTK-3 GUI with support for
+	 mouse actions, save as JPG possibility, more and intelligent calculation threads and smooth fancy color mapping. Check out mit github respositority, download the code (LINUX), compile and have fun...</p>
+  <p>In the meanwhile you can check my gallery, find the link in Navigation or click on the picture below.</p>
+  <p><a href="../pages/mandelbrotgallery.html"><img src="../pictures/mandel01.jpg" alt="mandelbrot" style="width:400px;height:350px;border:0;"></a></p>
+
+</article>
+
+<article class="article">
+  <h1>Links</h1>
+  <p><a href="http://dwell.goip.de:8765">my first webserver task 2017</a></p>
+  <p>find a link to my webpage www.dwell.at in Navigation menu</p>
+  <br>
+  <p><a href="https://github.com/wg34projects">my github respositorities</a></p>
+  <p><a href="http://www.technikum-wien.at">FH Technikum Wien</a></p>
 </article>
 
 <footer><p>copyright &copy; Helmut Resch  <a href="mailto:helmut.resch@gmail.com?Subject=response%20from%20dwell.goip.de:8888" target="_top">mail to server developer :-)</a></p>
