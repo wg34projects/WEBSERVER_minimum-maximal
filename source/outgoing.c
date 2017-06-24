@@ -6,6 +6,7 @@ TEXTOUTGOING codeOutgoingHeader(LOGFILE logLine)
 	int typeID = 0, filedescriptor = 0;
 	CODESTRING
 	FILEEXTSENDTYPE
+	CATOUTGOINGVAR
 
 	// init
 	memset(outgoingData.code, 0, sizeof(outgoingData.code));
@@ -88,6 +89,7 @@ TEXTOUTGOING codeOutgoingHeader(LOGFILE logLine)
 		perror("ERROR close file after seek");
 		outgoingData.error++;
 	}
+	screenInfo(category, 4, "content length:", outgoingData.lengthTotal);
 	if (snprintf(outgoingData.contentlength, sizeof(outgoingData.contentlength), "Content-Length: %d\r\n", outgoingData.lengthTotal) != strlen(outgoingData.contentlength))
 	{
 		perror("ERROR snprintf outgoingData.contentlength");

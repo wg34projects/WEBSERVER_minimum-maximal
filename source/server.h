@@ -29,7 +29,7 @@
 #include <regex.h>
 
 #define TEXTLEN 5000		// max length send/receive
-#define TEXTLENSEND 1900000
+#define TEXTLENSEND 3000000
 
 #define LINELEN 500			// max line length
 
@@ -37,15 +37,16 @@
 #define URLENDING 9			// HTTP/1.1 plus one space = 9
 #define IP4LENGTH 15
 
-#define DEBUGPIPE 0			// info pipe log to file
+#define DEBUGPIPE 0		// info pipe log to file
 #define DEBUGINRAW 0		// raw incoming string
 #define DEBUGINLINES 0 		// show incoming lines from client
 #define DEBUGALLOWEDLINES 0
 #define DEBUGRELATIVEPATH 0
+#define RASPBERRYPI 1
 
-#define FILEXTCOUNT 5
-#define FILEEXTSTRING 		const char *ext[] = { "html", "htm", "png", "ico", "jpg" };
-#define FILEEXTSENDTYPE		const char *type[] = { "text/html; charset=utf-8", "text/htm; charset=utf-8", "image/png", "image/ico", "image/jpg" };
+#define FILEXTCOUNT 8
+#define FILEEXTSTRING 		const char *ext[] = { "html", "htm", "png", "ico", "jpg", "gif", "txt", "mp4" };
+#define FILEEXTSENDTYPE		const char *type[] = { "text/html; charset=utf-8", "text/htm; charset=utf-8", "image/png", "image/ico", "image/jpg", "image/gif", "text/plain", "video/mp4"};
 #define CODECOUNT 5
 #define FILEEXTSWITCHCASE	switch (logLine.type)\
 							{\
@@ -77,6 +78,21 @@
 							case 5:\
 							{\
 								typeID = 4;\
+								break;\
+							}\
+							case 6:\
+							{\
+								typeID = 5;\
+								break;\
+							}\
+							case 7:\
+							{\
+								typeID = 6;\
+								break;\
+							}\
+							case 8:\
+							{\
+								typeID = 7;\
 								break;\
 							}\
 							default:\
@@ -122,6 +138,7 @@
 #define CATSECURITYVAR		const char *category = "__security";
 #define CATALLOWEDVAR		const char *category = "___allowed";
 #define CATINCOMINGVAR		const char *category = "__incoming";
+#define CATOUTGOINGVAR		const char *category = "__outgoing";
 #define CATEXITVAR			const char *category = "______exit";
 #define CATFULLVAR			const char *category[] = { "____system", "______root", "____logger", "____server" , "___handler" , "____closer" };
 

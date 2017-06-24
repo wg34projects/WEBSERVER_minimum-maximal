@@ -85,6 +85,10 @@ int readIncoming(char *textInBuffer, TEXTINCOMING **text)
 		}
 	}
 	lines--;
+	if (lines == 0)
+	{
+		return 0;
+	}
 
 	inText = (char **) calloc((size_t)(lines), (sizeof(char *)));
 	if (inText == NULL)
@@ -258,7 +262,7 @@ int readAllowed(ALLOWEDPATH **path)
 {
 	int level = 0;
 	ALLOWEDPATH *pAct;
-	
+
 	// add manual / path
 	pAct = (ALLOWEDPATH *) malloc (1 * sizeof(ALLOWEDPATH));
 	if (pAct == NULL)
@@ -283,43 +287,43 @@ int readAllowed(ALLOWEDPATH **path)
 		*path = pAct;
 	}
 
-   	recursiveWalk(&(*path), "..", level);
+	recursiveWalk(&(*path), "..", level);
 	return 1;
 }
 
-int recursiveWalk(ALLOWEDPATH **path, const char *pathName, int level) 
+int recursiveWalk(ALLOWEDPATH **path, const char *pathName, int level)
 {
 	DIR *dir;
-   	DIRENT *entry;
+	DIRENT *entry;
 	int temp = 0;
 	FILEEXTSTRING;
 
-   	if (!(dir = opendir(pathName))) 
+	if (!(dir = opendir(pathName)))
 	{
-      	perror("ERROR open directory");
-      	return 0;
-   	}
-   	if (!(entry = readdir(dir))) 
+		perror("ERROR open directory");
+		return 0;
+	}
+	if (!(entry = readdir(dir)))
 	{
-      	perror("ERROR read directory");
-      	return 0;
-   	}
-   	do 
+		perror("ERROR read directory");
+		return 0;
+	}
+	do
 	{
-      	char fullpath[1024];
-      	if (snprintf(fullpath, sizeof(fullpath)-1, "%s/%s", pathName, entry->d_name) == 0)
+		char fullpath[1024];
+		if (snprintf(fullpath, sizeof(fullpath)-1, "%s/%s", pathName, entry->d_name) == 0)
 		{
-			continue;		
+			continue;
 		}
-      	if (entry->d_type == DT_DIR) 
-		{ 
-         	if (strncmp(entry->d_name, ".", 1) == 0 || strncmp(entry->d_name, "..", 2) == 0 || strncmp(entry->d_name, "source", 6) == 0) 
+		if (entry->d_type == DT_DIR)
+		{
+			if (strncmp(entry->d_name, ".", 1) == 0 || strncmp(entry->d_name, "..", 2) == 0 || strncmp(entry->d_name, "source", 6) == 0)
 			{
-            	continue;
-         	}
-         	recursiveWalk(&(*path), fullpath, level + 1);
-      	}
-      	else 
+				continue;
+			}
+			recursiveWalk(&(*path), fullpath, level + 1);
+		}
+		else
 		{
 			int countOK = 0;
 			for (int i = 1; i < FILEXTCOUNT; i++)
@@ -361,9 +365,10 @@ int recursiveWalk(ALLOWEDPATH **path, const char *pathName, int level)
 				pAct->pNext = *path;
 				*path = pAct;
 			}
-     	}
-   	} while ((entry = readdir(dir)));	
-   	closedir(dir);
+		}
+	}
+	while ((entry = readdir(dir)));
+	closedir(dir);
 	return 1;
 }
 
@@ -420,7 +425,7 @@ int findAllowed(ALLOWEDPATH *path, const char *look, int lines)
 {
 	ALLOWEDPATH *pAct;
 	int count = 0, temp1 = 0, temp2 = 0, temp3 = 0;
-	
+
 	pAct = path;
 
 	temp1 = strlen(pAct->pathVar);

@@ -2,8 +2,8 @@
 
 int main (int argc, char *argv[])
 {
-	int connfd = 0, optval = 0, pipeCPchar[2], overhandedPort = 0, i = 0, pidSave = 0, rvGetOpt = 0, inputCount = 0;
-	char textInBuffer[TEXTLEN], textFromConnection[TEXTLEN], logLineFile[PIPE_BUF], sendBuffer[TEXTLENSEND];
+	int connfd = 0, optval = 0, pipeCPchar[2], overhandedPort = 0, i = 0, pidSave = 0, rvGetOpt = 0, inputCount = 0, errorcountlog = 0;
+	char textInBuffer[TEXTLEN], textFromConnection[TEXTLEN], logLineFile[PIPE_BUF], sendBuffer[TEXTLENSEND], logFileName[27];
 	unsigned long int serverInfoCounter = 0;	//	overall counter for info
 	bool endless = true;
 	pid_t forkPID1, forkPID2;
@@ -11,6 +11,7 @@ int main (int argc, char *argv[])
 	SIGACTION sa;
 	SOCKADDRIN servaddr, cliaddr;
 	LOGFILE logLine;
+	FILE *logFile;
 	TEXTOUTGOING textOutBuffer;
 	CATFULLVAR
 
@@ -19,6 +20,7 @@ int main (int argc, char *argv[])
 	memset(textFromConnection, 0 , sizeof(textFromConnection));
 	memset(logLineFile, 0 , sizeof(logLineFile));
 	memset(sendBuffer, 0 , sizeof(sendBuffer));
+	memset(logFileName, 0 , sizeof(logFileName));
 
 	// screen output and check if enough arguments were provided from command line
 	printf("\n");
@@ -146,7 +148,7 @@ int main (int argc, char *argv[])
 		if (close(pipeCPchar[1]) == -1)
 		{
 			perror("ERROR closing pipe 1");
-			exit(EXIT_FAILURE);
+			errorcountlog++;
 		}
 
 		// endless loop for logger
@@ -155,7 +157,7 @@ int main (int argc, char *argv[])
 			if (read(pipeCPchar[0], textFromConnection, PIPE_BUF) == -1)
 			{
 				perror("ERROR reading pipe 0");
-				break;	// clean exit as mentioned above
+				errorcountlog++;
 			}
 			for (i = 0; i < (int)(strlen(textFromConnection)); i++)
 			{
@@ -167,6 +169,52 @@ int main (int argc, char *argv[])
 #if DEBUGPIPE
 			screenInfo(category[2], 3, textFromConnection, 0);
 #endif
+			// logfile disk
+
+			if (snprintf(logFileName, sizeof(logFileName), "../logging/min-max-www.txt") != (strlen(logFileName)))
+			{
+				perror("ERROR sprintf log file name");
+				errorcountlog++;
+			}
+
+			logFile = fopen(logFileName, "a");
+
+			if (logFile == NULL)
+			{
+				perror("ERROR opening log file, check permissions");
+				errorcountlog++;
+			}
+
+			if (fprintf(logFile, "%s\n", textFromConnection) < 1)
+			{
+				perror("ERROR writing to logfile");
+				errorcountlog++;
+			}
+
+#if RASPBERRYPI
+
+			if (fflush(logFile) == EOF)
+			{
+				perror("ERROR flush to SD raspberry");
+				errorcountlog++;
+			}
+#endif
+
+			if (fclose(logFile) != 0)
+			{
+				printf("ERROR closing log file, check permissions");
+				errorcountlog++;
+			}
+
+			if (errorcountlog == 0)
+			{
+				screenInfo(category[1], 2, "log written", 0);
+			}
+			else
+			{
+				screenInfo(category[1], 1, "errors during logging, check filesystem", 0);
+			}
+			errorcountlog = 0;
 		}
 
 		// close pipe only on error above
@@ -234,7 +282,7 @@ int main (int argc, char *argv[])
 
 				// prepare string for pipe
 				if (snprintf(logLineFile, PIPE_BUF, "URL %s%s | %ju s since Epoch | local time: %s | %s | peer IP %s:%d",
-						logLine.homeAdress, logLine.relativePath, logLine.timeEpoch, logLine.timezone, logLine.agent, logLine.ipAddr, logLine.portNo) != strlen(logLineFile))
+							 logLine.homeAdress, logLine.relativePath, logLine.timeEpoch, logLine.timezone, logLine.agent, logLine.ipAddr, logLine.portNo) != strlen(logLineFile))
 				{
 					perror("ERROR snprintf logLineFile");
 					logLine.error++;
@@ -266,8 +314,8 @@ int main (int argc, char *argv[])
 
 				// exit check without answer
 				if (logLine.exit != 0)
-				{
-					screenInfo(category[1], 0, "exit trigger total", logLine.exit);
+			{
+				screenInfo(category[1], 0, "exit trigger total", logLine.exit);
 					screenInfo(category[1], 4, "no IP addr. or no HOST received", 0);
 					screenInfo(category[1], 4, "closing connection without response", 0);
 					exit(EXIT_FAILURE);
@@ -277,25 +325,25 @@ int main (int argc, char *argv[])
 					screenInfo(category[1], 2, "no exit trigger", 0);
 				}
 
-				// error status information 
+				// error status information
 				if (logLine.error != 0)
-				{
-					screenInfo(category[1], 1, "error trigger total", logLine.error);
+			{
+				screenInfo(category[1], 1, "error trigger total", logLine.error);
 					screenInfo(category[1], 4, "responding accordingly", 0);
 				}
 				else
 				{
 					screenInfo(category[1], 2, "no error trigger", logLine.error);
 				}
-				
+
 				// organize outgoing informations, strings, etc.
 				textOutBuffer = codeOutgoingHeader(logLine);
 
 				// send header data
 				if (logLine.method == 0)
-				{
-					// header for HTTP/1.1 405 Method Not Allowed
-					if (snprintf(sendBuffer, sizeof(sendBuffer), "%s%s\r\n", textOutBuffer.code, textOutBuffer.allowed) != strlen(sendBuffer))
+			{
+				// header for HTTP/1.1 405 Method Not Allowed
+				if (snprintf(sendBuffer, sizeof(sendBuffer), "%s%s\r\n", textOutBuffer.code, textOutBuffer.allowed) != strlen(sendBuffer))
 					{
 						perror("ERROR snprintf sendbuffer");
 					}
@@ -309,20 +357,20 @@ int main (int argc, char *argv[])
 					}
 
 				}
-				
+
 				// send header
 				if (send(connfd, sendBuffer, strlen(sendBuffer), MSG_NOSIGNAL) == -1)
 				{
 					perror("ERROR send HTML header");
 					exit(EXIT_FAILURE);
 				}
-			
+
 				// now the real content after GET Method
 
 				int retSend = 0;
 				int filetosend = 0;
 				memset(sendBuffer, 0 , sizeof(sendBuffer));
-				filetosend = open(textOutBuffer.relativePathCorrected, O_RDONLY);				
+				filetosend = open(textOutBuffer.relativePathCorrected, O_RDONLY);
 				while ((retSend = read(filetosend, sendBuffer, textOutBuffer.lengthTotal)) > 0)
 				{
 					if (send(connfd, sendBuffer, retSend, MSG_NOSIGNAL) == -1)

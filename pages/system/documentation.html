@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>min-max-webserver</title>
+<meta charset="UTF-8">
+<meta name="description" content="the-minimum-maximal-webserver project">
+<meta name="keywords" content="HTML,CSS">
+<meta name="author" content="Helmut Resch helmut.resch@gmail.com">
 <style> 
 .flex-container {
     display: -webkit-flex;
@@ -50,9 +55,9 @@ footer {background: #aaa;color:white;}
 <nav class="nav">
 <ul>
   <h1>Navigate</h1>
-  <p><li><a href="../../index.html">Start</a></li></p>
-  <p><li><a href="../pages/mandelbrotgallery.html">Fractal Gallery</a></li></p>
-  <p><li><a href="../pages/system/documentation.html">Documentation</a></li></p>
+  <p><li><a href="http://dwell.goip.de:8888/index.html">Start</a></li></p>
+  <p><li><a href="http://dwell.goip.de:8888/pages/mandelbrotgallery.html">Fractal Gallery</a></li></p>
+  <p><li><a href="http://dwell.goip.de:8888/pages/system/documentation.html">Documentation</a></li></p>
   <p><li><a href="http://www.dwell.at/">www.dwell.at</a></li></p>
 </ul>
 </nav>
@@ -65,6 +70,24 @@ footer {background: #aaa;color:white;}
 <article class="article">
   <h1>Flow diagramm request handling</h1>
   <p><a href="../../pictures/documentation/flowdiagram-accept.jpg"><img src="../../pictures/documentation/flowdiagram-accept.jpg" alt="flowdiagram-accept" style="width:400px;height:600px;border:0;"></a></p>
+</article>
+<article class="article">
+  <h1>Some more informations</h1>
+  <p>
+  <ul>
+    <li>independend log process, forked when server is started</li>
+    <li>own process for every access, forked when requested</li>
+    <li>not valid IP adress, errors with timestamp and missing HOST information leads to closing the connection</li>
+    <li>incoming string from webbrower added to temporary linked list for fast serach</li>
+    <li>METHOD check, if not GET or HEAD answer ALLOWED before closing connection</li>
+    <li>URL check for maximum length, if exceeded error 404 page</li>
+    <li>not existing document error 400 page</li>
+    <li>all other errors from functions (standard C and own) lead to error 500 page</li>
+    <li>existing documents scanned at every access with recursive function and stored in temporary linked list for fast serach</li>
+    <li>supported mime types can be changed in header file before compiling server</li>
+    <li>support tested with: htm / html / txt / png / jpg / gif / mp4<br><a href="../pages/documentation/mimetypes.html">Testpage with all MIME types</a></li>
+  </ul>
+  </p>
 </article>
 
 <footer><p>copyright &copy; Helmut Resch  <a href="mailto:helmut.resch@gmail.com?Subject=response%20from%20dwell.goip.de:8888" target="_top">mail to server developer :-)</a></p>

@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>min-max-webserver</title>
+<meta charset="UTF-8">
+<meta name="description" content="the-minimum-maximal-webserver project">
+<meta name="keywords" content="HTML,CSS">
+<meta name="author" content="Helmut Resch helmut.resch@gmail.com">
 <style> 
 .flex-container {
     display: -webkit-flex;
@@ -44,49 +49,59 @@ footer {background: #aaa;color:white;}
 
 <div class="flex-container">
 <header>
-  <h1>the-minimum-maximal-webserver v0.9 project</h1>
+  <h1>the-minimum-maximal-webserver project v0.95</h1>
 </header>
 
 <nav class="nav">
 <ul>
   <h1>Navigate</h1>
-  <p><li><a href="../index.html">Start</a></li></p>
-  <p><li><a href="../pages/mandelbrotgallery.html">Fractal Gallery</a></li></p>
-  <p><li><a href="../pages/system/documentation.html">Documentation</a></li></p>
+  <p><li><a href="http://dwell.goip.de:8888/index.html">Start</a></li></p>
+  <p><li><a href="http://dwell.goip.de:8888/pages/mandelbrotgallery.html">Fractal Gallery</a></li></p>
+  <p><li><a href="http://dwell.goip.de:8888/pages/system/documentation.html">Documentation</a></li></p>
   <p><li><a href="http://www.dwell.at/">www.dwell.at</a></li></p>
 </ul>
 </nav>
 
 <article class="article">
-  <h1>Informations</h1>
-  <p>Why coding a webserver if there are exisiting and much better ones?</p>
-  <p>Working with data connections, especially the TCP protocol is pretty interesting and cool. And it is a good training :-)</p>
-  <p>Find below the flow-diagram of the server, klick it to enlarge.</p>
-  <p>As soon as I reach version 1.0 I will publish the code on github for one who is interested.</p>
-  <p>Check also the Documentation part in Navigation for more details regarding this server.</p>
-  <p>All pages and pictures shown within dwell.goip.de:8888 are provided by an Raspberry PI 3, more infos soon.</p>
-  <p><a href="../pictures/documentation/flowdiagram-server.jpg"><img src="../pictures/documentation/flowdiagram-server.jpg" alt="flowdiagram-webserver" style="width:400px;height:600px;border:0;"></a></p>
+  <h1>Why coding a webserver as there are exisiting and much better ones?</h1>
+  <p>System Programming, especially TCP/IP Client Server Programming, with C is interesting and pretty cool,
+  While coding a webserver by myself, I learned about security risks and how to avoid them.</p>
+  <p>This time I started with the basic concept before writing one line of new code to avoid workarounds 
+  like in the code of the first server. You can check the <a href="http://dwell.goip.de:8888/pages/system/documentation.html">documentation</a>.</p>
+  <p>As soon as I reach version 1.0 I will publish the code on github for one who is interested.
+  All pages and pictures shown here (dwell.goip.de:8888) are provided by my new server,
+  as hardware basis I am using a Raspberry PI 3.</p>
+  <small><p id="yourtime"></p></small>
+  <script>document.getElementById('yourtime').innerHTML = Date();</script>
+  <center><p><a href="../pictures/documentation/flowdiagram-server.jpg"><img src="../pictures/documentation/flowdiagram-server.jpg" alt="flowdiagram-server" style="width:200px;height:300px;border:0;"></a>
+  <a href="../pictures/documentation/flowdiagram-accept.jpg"><img src="../pictures/documentation/flowdiagram-accept.jpg" alt="flowdiagram-accept" style="width:200px;height:300px;border:0;"></a></p></center>
 </article>
 
 <article class="article">
   <h1>Mandelbrot Fractals</h1>
-  <p>In 2k17 I've chosen as task in POSIX C to realize a Pixel Generator which exchanges data over shared memory and coordinates the synchonisatzion between a generator process and a receiver process with semaphores.</p>
-  <p>As one proposal, the generator should calculate the Mandelbrot set in a loop. The calculation itself, thanks to thousands of examples found in internet, was easy to realize, much easier than the interprocess communication.</p>
-  <p>The task was not the Mandelbrot set calculation, but this got for me to the most fascinating part of this task. I started to work and experiment with different color mappings and spent lot of kwh in electrical power.</p>
-  <p>Due to that reason I recoded after handing in my task the whole tool to a standalone, 4 thread application for Linux. I will continue working on that stuff, planning (already started) a nice GTK-3 GUI with support for
-	 mouse actions, save as JPG possibility, more and intelligent calculation threads and smooth fancy color mapping. Check out mit github respositority, download the code (LINUX), compile and have fun...</p>
+  <p>In 2k17 I've chosen as task in POSIX C to realize a Pixel Generator which exchanges data over shared memory 
+  and coordinates the synchonisatzion between a generator process and a receiver process with semaphores.
+  As one proposal, the generator should calculate the Mandelbrot set in a loop. The calculation itself, thanks to 
+  thousands of examples found in internet, was easy to realize, much easier than the interprocess communication.</p>
+  <p>The main task was not the Mandelbrot calculation, but I was fascinated and started to work and experiment with different 
+  color mappings and spent lot of kwh of electrical power with calculating.</p>
+  <p>I recoded after handing in my task the whole tool to a standalone, 4 thread application for Linux. 
+  I will continue working on that stuff, planning (already started) a nice GTK-3 GUI with support for mouse actions, save as JPG 
+  possibility, more and intelligent calculation threads and smooth fancy color mapping. Check out mit github respositority, download 
+  the code (only LINUX compatible at the moment), compile and have fun calculating some pictures by yourself.</p>
   <p>In the meanwhile you can check my gallery, find the link in Navigation or click on the picture below.</p>
-  <p><a href="../pages/mandelbrotgallery.html"><img src="../pictures/mandel01.jpg" alt="mandelbrot" style="width:400px;height:350px;border:0;"></a></p>
+  <center><p><a href="http://dwell.goip.de:8888/pages/mandelbrotgallery.html"><img src="http://dwell.goip.de:8888/pictures/mandel01.jpg" alt="mandelbrot" style="width:200px;height:175px;border:0;"></a></p></center>
 
 </article>
 
 <article class="article">
   <h1>Links</h1>
   <p><a href="http://dwell.goip.de:8765">my first webserver task 2017</a></p>
-  <p>find a link to my webpage www.dwell.at in Navigation menu</p>
-  <br>
+  <p><a href="http://www.dwell.at">my homepage</a> www.dwell.at</p>
   <p><a href="https://github.com/wg34projects">my github respositorities</a></p>
+  <br>
   <p><a href="http://www.technikum-wien.at">FH Technikum Wien</a></p>
+  
 </article>
 
 <footer><p>copyright &copy; Helmut Resch  <a href="mailto:helmut.resch@gmail.com?Subject=response%20from%20dwell.goip.de:8888" target="_top">mail to server developer :-)</a></p>
